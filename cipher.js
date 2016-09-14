@@ -2,7 +2,9 @@
 
 function CipherPlay()
 {
-    let CipherPlay = this;
+    let _CipherPlay = this;
+
+
 
     // 基本编码处理
     this.basic = 
@@ -32,18 +34,18 @@ function CipherPlay()
     this.Caesar = 
     {
         //加密，第二个参数为正或负的整数，表示加密的偏移位数
-        encrypt: function(plainText, nDeviation)
+        encrypt: function(sPlainText, nDeviation)
         {
             var allChar = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"],
                 sCiphertext = "",//待输出的密文
-                plainText = plainText.toLocaleLowerCase(),
-                len = plainText.length;
+                sPlainText = sPlainText.toLocaleLowerCase(),
+                len = sPlainText.length;
             
             for(var i=0; i<len; i++)
             {
-                if( allChar.indexOf(plainText[i]) !== -1 )
+                if( allChar.indexOf(sPlainText[i]) !== -1 )
                 {
-                    var cipherIndex = allChar.indexOf(plainText[i]) + nDeviation;//明文在字母表中的序号加上偏移位数等于密文在字母表中的序号
+                    var cipherIndex = allChar.indexOf(sPlainText[i]) + nDeviation;//明文在字母表中的序号加上偏移位数等于密文在字母表中的序号
                     if( cipherIndex > 25 )//如果序号超过了字母表长度，则循环到字母表头部继续数
                     {
                         cipherIndex = cipherIndex - 26;
@@ -56,7 +58,7 @@ function CipherPlay()
                 }
                 else//如果该位不是英文字母，则照原样返回
                 {
-                    sCiphertext += plainText[i];
+                    sCiphertext += sPlainText[i];
                 }
             }
             return sCiphertext;
@@ -65,7 +67,7 @@ function CipherPlay()
         //破解
         //遍历密文所有25种偏移，查看有意义的一组
         crack: function (sCiphertext)
-        {
+        {   
             var len = sCiphertext.length,
                 allChar = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"],
                 sPlainText = "",//待输出明文
@@ -173,7 +175,7 @@ function CipherPlay()
             for(var i=2; i<len; i++)//不知道是几行栅栏加密，这里逐一讨论完所有可能的情况
             {
                 aResult[i-2] = "";//格式化为字符串之后进行拼接操作
-                var aLine = CipherPlay.commonFunction.strSharing(sCiphertext, i),//针对每一种行数的加密算法，将密文分为相应的行数
+                var aLine = _CipherPlay.commonFunction.strSharing(sCiphertext, i),//针对每一种行数的加密算法，将密文分为相应的行数
                     size =  aLine[0].length;//分好行之后最宽的那一行或几行的宽度。如果不能均分，就会出现后面的若干行长度比这个少1
                 for(var j=0; j<size; j++)//逐列组合字符，这个为栅栏逐列排列的逆过程
                 {
@@ -195,19 +197,19 @@ function CipherPlay()
     this.Virginia = 
     {
         //加密
-        encrypt : function (plainText, key)//第二个参数为加密秘钥字符串
+        encrypt : function (sPlainText, key)//第二个参数为加密秘钥字符串
         {
-            var plainText = plainText.replace(/\s/g, "").toLocaleLowerCase(),
+            var sPlainText = sPlainText.replace(/\s/g, "").toLocaleLowerCase(),
                 key = key.replace(/\s/g, "").toLocaleLowerCase();
                                       
-            var pLen = plainText.length,
+            var pLen = sPlainText.length,
                 kLen = key.length,
                 cipherText = "";//待输出密文
             
             for(var i=0; i<pLen; i++)//遍历明文字符。在纵向中查找秘钥字符，在横向中查找明文字符
             {
                 //因为秘钥要不断重复至明文长度，所以通过i%kLen循环遍历秘钥字符
-                cipherText += VirginiaFormEncryption(key.charAt(i%kLen), plainText.charAt(i));
+                cipherText += VirginiaFormEncryption(key.charAt(i%kLen), sPlainText.charAt(i));
             }
             
             function VirginiaFormEncryption(sVirticalChar, sHorizontalChar)//单个字符，纵向字符和横向字符查找表中字符
@@ -232,11 +234,11 @@ function CipherPlay()
                 
             var cLen = cipherText.length,
                 kLen = key.length,
-                plainText = "";//明文
+                sPlainText = "";//明文
             
             for(var i=0; i<cLen; i++)//遍历密文字符。在纵向中查找秘钥字符，在横向中查找密文字符
             {
-                plainText += VirginiaFormDecryption(key.charAt(i%kLen), cipherText.charAt(i));
+                sPlainText += VirginiaFormDecryption(key.charAt(i%kLen), cipherText.charAt(i));
             }
             
             function VirginiaFormDecryption(sVirticalChar, sCipherChar)//纵向秘钥字符和对应的密文字符查找明文
@@ -250,7 +252,7 @@ function CipherPlay()
                 return allChar[(charCodeC - charCodeV + 26)%26];
             }
             
-            return plainText;
+            return sPlainText;
         }
     };
 
@@ -263,12 +265,12 @@ function CipherPlay()
     this.SquareKeyboard = 
     {
         //加密
-        encrypt: function (plainText)//必须是纯字母
+        encrypt: function (sPlainText)//必须是纯字母
         {
             var aSquareKeyboard = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"];//从0开始，10个数字键对应的字母
             
-            var plainText = plainText.replace(/\s/g, "").toLocaleLowerCase(),
-                len = plainText.length,
+            var sPlainText = sPlainText.replace(/\s/g, "").toLocaleLowerCase(),
+                len = sPlainText.length,
                 cipherText = "",//待输出的密文
                 bJBreak = false;
             var i = null,
@@ -285,7 +287,7 @@ function CipherPlay()
                     }
                     for(k=0; k<4; k++)//循环每个按键上的字母，7和9最多四次  
                     {
-                        if( plainText[i] ===    aSquareKeyboard[j][k] )//找到当前字符
+                        if( sPlainText[i] ===    aSquareKeyboard[j][k] )//找到当前字符
                         {
                             cipherText += j +""+ (k+1);//将对应的两个数字加入密文。加一是因为数字键上字母序号从1开始记    
                             if( j!== 9 )//如果等于9，则本轮j循环已结束，没有机会变成false，下一轮会直接跳出，少计算一次
@@ -309,14 +311,14 @@ function CipherPlay()
                 sNum +="";  
             }
             var len = sNum.length,
-                plainText = "";//待输出明文
+                sPlainText = "";//待输出明文
 
             for(var i=0; i<len; i=i+2)//两两一组遍历,以上两行确定两个一组的数字对应的是什么字母
             {
                 var temp = aSquareKeyboard[sNum[i]];//奇数位数字对应的九宫格按键
-                plainText += temp[sNum[i+1]-1];//之后一位数字对应的当前数字键上的字母
+                sPlainText += temp[sNum[i+1]-1];//之后一位数字对应的当前数字键上的字母
             }
-            return plainText;
+            return sPlainText;
         }
     };
 
@@ -346,6 +348,38 @@ function CipherPlay()
                 }   
             }
             return aLine;
+        },
+
+        /*
+            Number String Array
+        */
+        // TODO 怎么处理有可选参数的情况
+        checkArguments: function( aArguments, aStandard )
+        {
+            if( aArguments.length < aStandard.length )
+            {
+                throw new Error( );
+            }
         }
     };
+
+    if( typeof this.testFn !== "function" )
+    {
+        console.log( typeof this ); // object
+        console.log( typeof _CipherPlay ); // object
+        console.log( typeof CipherPlay ); // function
+        console.log( CipherPlay.prototype ); // Object {}
+        console.log( _CipherPlay.prototype ); // undefined
+
+        CipherPlay.prototype.testFn = function()
+        {
+
+        }
+    }
+    
+
+    for( let attr in CipherPlay )
+    {
+        console.log( attr );
+    }
 }
