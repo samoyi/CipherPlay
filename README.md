@@ -2,6 +2,10 @@
 
 ## 目录
 * [简单密码](https://github.com/samoyi/CipherPlay/blob/master/easyCiphers)
+  * 凯撒（Caesar）密码
+  * 栅栏（Rail fence）密码
+  * 维吉尼亚（Virginia）密码
+  * 手机九宫格键盘
 * [莫尔斯码](https://github.com/samoyi/CipherPlay/blob/master/Morse)
 
 ## TODO
