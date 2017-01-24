@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Morse Code</title>
+</head>
+<body>
+	<p>需要在支持基础ES6的浏览器中使用</p>
+	<p>
+		自定义点线字符。<br />如果你使用的莫尔斯码字符不是这里的默认字符，在下面两个文本框中输入你使用的点和线的字符<br />
+		<input type="text" placeholder="点默认为数字键盘的点" id="customDot" /><br />
+	    <input type="text" placeholder="线默认为数字键盘的减号" id="customDash" />
+	</p>
+	<P>
+	输入莫尔斯码要加空格。例如 ...---... 要写成 ... --- ...<br />
+	只识别英文字母和阿拉伯数字及其对应的莫尔斯码<br />
+	成功转换之后会自动播放音频
+	</P>
+	<p>
+	<textarea id="code" placeholder="在这里输入莫尔斯码"></textarea>
+	<textarea id="char" placeholder="在这里输入英文字母和阿拉伯数字"></textarea>
+	</P>
+	<p>
+	<input type="button" id="transFromMorse" value="从莫尔斯码翻译" />
+	<input type="button" id="transToMorse" value="翻译为莫尔斯码" />
+	</p>
+	在下面显示翻译的结果：
+	<p id="output">
+	</p>
+	<audio id="audio"></audio>
+</body>
+<script>
+"use strict";
+
+
+// 常量定义	 ————————————————————————————————————————————————————————————————————
+//26个英文字母和10个数字对应的莫尔斯码
+const LETTER_CODE = [".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--.."],
+	NUMBER_CODE = ["-----", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----."];
+
+const aLetterChar = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"],
+	NUMBER_CHAR = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
+const ALL_CODE = LETTER_CODE.concat(NUMBER_CODE),
+	ALL_CHAR = aLetterChar.concat(NUMBER_CHAR);
+
+
+// 函数定义 —————————————————————————————————————————————————————————————————————
+
+// 对一个打算用于正则表达式模式的字符串中需要转义的字符进行转义
+function RegExpEscape(str)
+{
+	let sNeedToBeEscaped = "{[(\\^$|?*+.)]}";
+	let aNeedToBeEscaped = [...str].map(function(value)
+	{
+		if( sNeedToBeEscaped.indexOf(value) > -1 ){
+			return "\\" + value;
+		}
+		return value;
+	});
+	return aNeedToBeEscaped.join("");
+}
+
+
+// 将 .- 以外的莫尔斯码符号转换成 .- 的写法
+/*
+ * 例如 MorseCodeSymbolReset("***---***", "*", "-") 将返回 "...---..."
+ *
+ * 第二个参数字符串不能是第三个参数字符串的子字符串。
+ *
+ * 无法检测第一个参数是否合法。例如 MorseCodeSymbolReset("2- .-.-2--", "2-", ".-")
+ * 其中的 -- 就是非法的，这种情况下该函数会返回 ". ---"
+ */
+ function MorseCodeSymbolReset(sCode, sDiSymbol, sDaSymbol)
+ {
+ 	if( typeof sCode !== "string" || !sCode ){
+ 		throw new TypeError("MorseCodeSymbolReset 函数的 sCode 参数必须是非空字符串");
+ 	}
+ 	if( (typeof sDiSymbol !== "string")&&(typeof sDiSymbol !== "undefined") ){
+ 		throw new TypeError("MorseCodeSymbolReset 函数的 sDiSymbol 参数类型错误");
+ 	}
+ 	if( (typeof sDaSymbol !== "string")&&(typeof sDaSymbol !== "undefined") ){
+ 		throw new TypeError("MorseCodeSymbolReset 函数的 sDaSymbol 参数类型错误");
+ 	}
+ 	if( sDiSymbol && sDaSymbol.indexOf(sDiSymbol) !== -1 ){ // indexOf("")永远返回0
+ 		throw new Error("MorseCodeSymbolReset 函数的 sDiSymbol 参数不能是 sDaSymbol 参数的子字符串");
+ 		/*
+ 		 * 如果sDiSymbol参数是sDaSymbol的子字符串，如 MorseCodeSymbolReset("2- ----2-", "-", "2-")
+ 		 * 当用 . 去替换 - 的时候，把 2- 也变成了 2.
+ 		 */
+ 	}
+
+	if( sDiSymbol ){ // 非空字符串
+		sDiSymbol =  RegExpEscape(sDiSymbol);
+		sCode = sCode.replace(new RegExp(sDiSymbol, "g"), ".");
+	}
+	if( sDaSymbol ){ // 非空字符串
+		sDaSymbol = RegExpEscape(sDaSymbol);
+		sCode =  sCode.replace(new RegExp(sDaSymbol, "g"),"-");
+	}
+
+ 	return sCode;
+ }
+
+
+// 逐个播放给定的所有字母和数字的莫尔斯码音频
+/*
+ * 第一个参数是audio节点；第二个参数是给定字母和数字组成的数组
+ */
+function playMorseAudio(oAudio, aChar)
+{
+	var nAudioIndex = 0,
+		nCodeAmount = aChar.length;
+	oAudio.addEventListener("ended", function()//一个音播放完之后接着播放下一个
+	{
+		if( nAudioIndex < nCodeAmount-1 )
+		{
+			oAudio.src = "audio/" + aChar[++nAudioIndex] + ".mp3";
+			oAudio.play();
+		}
+	},false);
+	oAudio.addEventListener("canplaythrough",function()
+	{
+		oAudio.play();
+	},false);
+	oAudio.src = "audio/" + aChar[nAudioIndex] + ".mp3";
+}
+
+
+
+// 通用DOM ——————————————————————————————————————————————————————————————————————
+let oOutput = document.getElementById("output"),
+	oTransFromMorse = document.getElementById("transFromMorse"),
+	oTransToMorse= document.getElementById("transToMorse"),
+	oCustomDot = document.getElementById("customDot"),
+	oCustomDash = document.getElementById("customDash"),
+	oCode = document.getElementById("code"),
+	oChar = document.getElementById("char"),
+	oAudio = document.getElementById("audio");
+
+
+
+// 具体逻辑 —————————————————————————————————————————————————————————————————————
+let bCouldPlayAudio = false,
+	aAudioName = [];
+
+//从莫尔斯码转化为字符—————————————————————————————
+oTransFromMorse.addEventListener("click",function()
+{
+	bCouldPlayAudio = true;
+	aAudioName = [];
+
+	let di = oCustomDot.value.trim(),
+			da = oCustomDash.value.trim(),
+			sCodeValue = oCode.value.trim();
+	sCodeValue = MorseCodeSymbolReset(sCodeValue, di, da);
+
+	let aInputCode = sCodeValue.split(" "),
+		len = aInputCode.length;
+	for(let i=0; i<len; i++)
+	{
+		let index = ALL_CODE.indexOf(aInputCode[i]);//在所有的莫尔斯码中查找当前码的序号
+		if( index !== -1 )//如果找到
+		{
+			aInputCode[i] = ALL_CHAR[index];//将该码替换为对应的字符
+			aAudioName.push(ALL_CHAR[index]);//记录该码对应的音频
+		}
+		else//没有没找到则该码保持不变，且最终音频不能播放
+		{
+			bCouldPlayAudio = false;
+		}
+	}
+
+	//显示结果
+	if(bCouldPlayAudio){ // 输入正确
+		oOutput.textContent = aInputCode.join("");
+		playMorseAudio(oAudio, aAudioName);
+	}
+	else{
+		oOutput.textContent = "输入错误";
+	}
+
+},false);
+
+
+//从字符转化为莫尔斯码—————————————————————————————
+oTransToMorse.addEventListener("click",function()
+{
+	bCouldPlayAudio = true;
+	aAudioName = [];
+
+	var sCharValue = oChar.value.toLocaleLowerCase().replace(/\s/g, ""),
+		len = sCharValue.length,
+		aOutCode = [];
+	for(var i=0; i<len; i++)
+	{
+		var index = ALL_CHAR.indexOf(sCharValue[i]);
+
+		if( index !== -1 )
+		{
+			aOutCode[i] = ALL_CODE[index];
+			aAudioName.push(ALL_CHAR[index]);
+			oOutput.textContent = aOutCode.join(" ");
+		}
+		else
+		{
+			aOutCode[i] = sCharValue[i];
+			bCouldPlayAudio = false;
+			oOutput.textContent = "输入错误";
+		}
+	}
+
+	if(bCouldPlayAudio){
+		playMorseAudio(oAudio, aAudioName);
+	}
+},false);
+
+//音频预加载———————————————————————————————————————
+{
+	let aAudioSrc = ["audio/0.mp3", "audio/1.mp3", "audio/2.mp3", "audio/3.mp3", "audio/4.mp3", "audio/5.mp3", "audio/6.mp3", "audio/7.mp3", "audio/8.mp3", "audio/9.mp3", "audio/a.mp3", "audio/b.mp3", "audio/c.mp3", "audio/d.mp3", "audio/e.mp3", "audio/f.mp3", "audio/g.mp3", "audio/h.mp3", "audio/i.mp3", "audio/j.mp3", "audio/k.mp3", "audio/l.mp3", "audio/m.mp3", "audio/n.mp3", "audio/o.mp3", "audio/p.mp3", "audio/q.mp3", "audio/r.mp3", "audio/s.mp3", "audio/t.mp3", "audio/u.mp3", "audio/v.mp3", "audio/w.mp3", "audio/x.mp3", "audio/y.mp3", "audio/z.mp3"];
+	for (let i=0,newAudios = []; i<aAudioSrc.length; i++){
+		newAudios[i] = new Audio();
+		newAudios[i].src = aAudioSrc[i];
+	}
+}
+</script>
+</html>
