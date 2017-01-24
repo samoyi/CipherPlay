@@ -6,9 +6,10 @@
   * 栅栏（Rail fence）密码
   * 维吉尼亚（Virginia）密码
   * 手机九宫格键盘
-  
+
 ### [莫尔斯码](https://github.com/samoyi/CipherPlay/blob/master/Morse)
 
+***
 ## TODO
 * 检查用户传参的数据类型。数字字符串直接转换成数字
 * 删除输入字符串中的空格
