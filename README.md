@@ -1,4 +1,8 @@
-# 常见密码（及编码）的编码、解码或者还有破解
+# 简单密码（及编码）的编码、解码或者还有破解
+
+## 目录
+* [简单密码](https://github.com/samoyi/CipherPlay/blob/master/easyCiphers)
+* [莫尔斯码](https://github.com/samoyi/CipherPlay/blob/master/Morse)
 
 ## TODO
 * 检查用户传参的数据类型。数字字符串直接转换成数字
